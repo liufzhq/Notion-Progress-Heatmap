@@ -5,10 +5,11 @@ dotenv.config();
 export default async (req, res) => {
   const token = process.env.ENV_NOTION_TOKEN;
   const databaseId = process.env.ENV_DATABASE_ID;
-  const habit = req.query.habit || null; // 从 URL 读取 ?habit=打坐
+  // 这里填"所属项目"里关联的那个项目页面的 ID（去掉横线后比较）
+  const projectId = req.query.habit ? req.query.habit.replace(/-/g, "") : null;
 
   try {
-    const response = await fetch(`https://api.notion.com/v1/databases/${databaseId}/query`, {
+    const response = await fetch(`{{https://api.notion.com/v1/databases/${databaseId}}}/query`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -22,7 +23,7 @@ export default async (req, res) => {
       throw new Error(`Notion API error: ${response.status} ${JSON.stringify(data)}`);
     }
 
-    const processedData = processData(data.results, habit);
+    const processedData = processData(data.results, projectId);
     res.json(processedData);
   } catch (error) {
     console.error("Error processing request:", error);
@@ -30,17 +31,16 @@ export default async (req, res) => {
   }
 };
 
-const processData = (data, habit) => {
+const processData = (data, projectId) => {
   const progressMap = new Map();
 
   data.forEach(item => {
     if (item.properties.Date && item.properties.Progress) {
-      // 如果指定了 habit，只保留对应习惯的记录
-      if (habit) {
-        const itemHabit = item.properties.习惯 && item.properties.习惯.select
-          ? item.properties.习惯.select.name
-          : null;
-        if (itemHabit !== habit) return;
+      // 如果指定了项目 ID，只保留"所属项目"里包含该 ID 的记录
+      if (projectId) {
+        const relations = (item.properties["所属项目"] && item.properties["所属项目"].relation) || [];
+        const matched = relations.some(r => r.id.replace(/-/g, "") === projectId);
+        if (!matched) return;
       }
 
       if (item.properties.Progress.formula.number !== null && item.properties.Progress.formula.number > 0) {
