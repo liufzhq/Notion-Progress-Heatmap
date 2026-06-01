@@ -24,11 +24,14 @@ export default async (req, res) => {
     }
     // 临时调试：访问 ...?debug=1 时，返回第一行的属性结构
 if (req.query.debug) {
-  const first = data.results[0];
-  return res.json({
-    所有属性名: Object.keys(first.properties),
-    可能的关联列: first.properties["所属项目"]
-  });
+  return res.json(
+    data.results.map(item => ({
+      任务: (item.properties["每日任务"] && item.properties["每日任务"].title[0] ? item.properties["每日任务"].title[0].plain_text : "(无标题)"),
+      项目ID: (item.properties["所属项目"] && item.properties["所属项目"].relation || []).map(r => r.id),
+      Progress: item.properties["Progress"] && item.properties["Progress"].formula ? item.properties["Progress"].formula.number : null,
+      Date: item.properties["Date"] && item.properties["Date"].created_time
+    }))
+  );
 }
 
     const processedData = processData(data.results, projectId);
