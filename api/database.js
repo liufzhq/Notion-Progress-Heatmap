@@ -9,7 +9,7 @@ export default async (req, res) => {
   const projectId = req.query.habit ? req.query.habit.replace(/-/g, "") : null;
 
   try {
-    const response = await fetch(`{{https://api.notion.com/v1/databases/${databaseId}}}/query`, {
+    const response = await fetch(`https://api.notion.com/v1/databases/` + databaseId + `/query`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
