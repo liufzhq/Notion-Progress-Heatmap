@@ -5,11 +5,12 @@ dotenv.config();
 export default async (req, res) => {
   const token = process.env.ENV_NOTION_TOKEN;
   const databaseId = process.env.ENV_DATABASE_ID;
-  // 这里填"所属项目"里关联的那个项目页面的 ID（去掉横线后比较）
-  const projectId = req.query.habit ? req.query.habit.replace(/-/g, "") : null;
+  // 用任务名过滤，例如 ?habit=背点单词
+  const habit = req.query.habit ? req.query.habit.trim() : null;
 
   try {
-    const response = await fetch(`https://api.notion.com/v1/databases/` + databaseId + `/query`, {
+    const url = 'https://api.notion.com/v1/databases/' + databaseId + '/query';
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -22,19 +23,8 @@ export default async (req, res) => {
     if (!response.ok) {
       throw new Error(`Notion API error: ${response.status} ${JSON.stringify(data)}`);
     }
-    // 临时调试：访问 ...?debug=1 时，返回第一行的属性结构
-if (req.query.debug) {
-  return res.json(
-    data.results.map(item => ({
-      任务: (item.properties["每日任务"] && item.properties["每日任务"].title[0] ? item.properties["每日任务"].title[0].plain_text : "(无标题)"),
-      项目ID: (item.properties["所属项目"] && item.properties["所属项目"].relation || []).map(r => r.id),
-      Progress: item.properties["Progress"] && item.properties["Progress"].formula ? item.properties["Progress"].formula.number : null,
-      Date: item.properties["Date"] && item.properties["Date"].created_time
-    }))
-  );
-}
 
-    const processedData = processData(data.results, projectId);
+    const processedData = processData(data.results, habit);
     res.json(processedData);
   } catch (error) {
     console.error("Error processing request:", error);
@@ -42,16 +32,16 @@ if (req.query.debug) {
   }
 };
 
-const processData = (data, projectId) => {
+const processData = (data, habit) => {
   const progressMap = new Map();
 
   data.forEach(item => {
     if (item.properties.Date && item.properties.Progress) {
-      // 如果指定了项目 ID，只保留"所属项目"里包含该 ID 的记录
-      if (projectId) {
-        const relations = (item.properties["所属项目"] && item.properties["所属项目"].relation) || [];
-        const matched = relations.some(r => r.id.replace(/-/g, "") === projectId);
-        if (!matched) return;
+      // 按任务名过滤（指定了 habit 时）
+      if (habit) {
+        const titleArr = item.properties["每日任务"] && item.properties["每日任务"].title;
+        const title = (titleArr && titleArr[0] ? titleArr[0].plain_text : "").trim();
+        if (title !== habit) return;
       }
 
       if (item.properties.Progress.formula.number !== null && item.properties.Progress.formula.number > 0) {
