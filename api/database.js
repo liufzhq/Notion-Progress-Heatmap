@@ -22,6 +22,14 @@ export default async (req, res) => {
     if (!response.ok) {
       throw new Error(`Notion API error: ${response.status} ${JSON.stringify(data)}`);
     }
+    // 临时调试：访问 ...?debug=1 时，返回第一行的属性结构
+if (req.query.debug) {
+  const first = data.results[0];
+  return res.json({
+    所有属性名: Object.keys(first.properties),
+    可能的关联列: first.properties["所属项目"]
+  });
+}
 
     const processedData = processData(data.results, projectId);
     res.json(processedData);
