@@ -45,7 +45,6 @@ const processData = (data, projectId) => {
 
       if (item.properties.Progress.formula.number !== null && item.properties.Progress.formula.number > 0) {
         const dateObject = new Date(item.properties.Date.created_time);
-        dateObject.setDate(dateObject.getDate() + 1);
         const date = dateObject.toISOString().split('T')[0];
         const progress = Math.round(item.properties.Progress.formula.number * 100);
         progressMap.set(date, progress);
