@@ -17,13 +17,14 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const baseUrl = window.location.origin; // 获取当前页面的根URL
+            const apiUrl = baseUrl + "/api/database" + window.location.search;
         
             const cal = new CalHeatMap();
             cal.init({
                 itemSelector: "#cal-heatmap",
                 domain: "month",
                 subDomain: "day",
-                data: baseUrl + "/api/database", // 更新为指向无服务器函数的URL
+                data: apiUrl, // 更新为指向无服务器函数的URL
                 start: new Date(new Date().getFullYear(), new Date().getMonth() - 5),
                 cellSize: 10,
                 range: 6,
@@ -59,7 +60,7 @@
         
             // 设置定时器每30秒刷新数据
             setInterval(function() {
-                cal.update(baseUrl + "/api/database"); // 更新为指向无服务器函数的URL
+                cal.update(apiUrl); // 更新为指向无服务器函数的URL
             }, 30000); // 每30秒刷新一次
         });
     </script>
